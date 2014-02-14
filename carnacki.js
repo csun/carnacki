@@ -15,17 +15,23 @@
 
  exports.login = login;
  exports.searchFor = searchFor;
+ exports.navigateTo = navigateTo;
 
  exports.savePage = savePage;
+ exports.saveHtml = saveHtml;
 
 /*
 * === Variables ===============================================
 */
-var LOGIN_PATH = "https://accounts.google.com/ServiceLogin?hl=en&continue=https://www.google.com/";
+
+var LOGIN_PATH = 'https://accounts.google.com/ServiceLogin?hl=en&continue=https://www.google.com/';
+var JQUERY_FILENAME = 'carnacki_jquery.js';
+var JQUERY_DOWNLOAD_URL = 'http://code.jquery.com/jquery-1.11.0.min.js';
 
 var debuggingEnabled = true;
 var actionWait = 1000;
 
+var fs = require('fs');
 var page = require('webpage').create();
 page.onLoadFinished = onLoadFinished;
 
@@ -83,7 +89,7 @@ function argumentsToAction(args) {
 
 /*
 * doNextAction
-* Do the next queued up action, after a wait.
+* Do the next queued up action, after a wait
 */
 function doNextAction() {
 	if(actionQueue.length == 0) phantom.exit();
@@ -100,10 +106,37 @@ function doNextAction() {
 * Start performing queued actions
 */
 function go() {
-	log("STARTING SESSION =================");
+	log('STARTING SESSION =================');
+	setUpJquery();
 	doNextAction();
 }
 
+/*
+* setUpJquery
+* If no local copy of jquery exists in the current directory,
+* download one
+*/
+function setUpJquery() {
+	log('Setting up jQuery...');
+	if(!fs.isFile(JQUERY_FILENAME)) {
+		log('   jQuery file missing. Downloading...');
+		addNextAction(saveJquery, JQUERY_FILENAME);
+		addNextAction(navigateTo, JQUERY_DOWNLOAD_URL);
+	}
+	else {
+		log('   jQuery already set up!');
+	}
+}
+
+/*
+* saveJquery
+* Saves the current page as the carnacki jquery file
+*/
+function saveJquery() {
+	log('   saving ' + JQUERY_FILENAME);
+	fs.write(JQUERY_FILENAME, page.plainText, 'w');
+	doNextAction();
+}
 
 /*
 * === login (Public) ==========================================
@@ -141,6 +174,16 @@ function searchFor(query) {
 }
 
 /*
+* navigateTo (Public)
+* Navigate to a url
+*/
+function navigateTo(url) {
+	log('Navigating to ' + url);
+
+	page.open(url);
+}
+
+/*
 * === log =====================================================
 * If debugging is enabled, log a message to the console
 */
@@ -152,9 +195,26 @@ function log(msg) {
 * savePage (Public)
 * Saves a picture of the page in /Results
 */
-function savePage() {
-	log("Saving page...");
-	page.render('Results/' + page.title + '.png');
+function savePage(filename) {
+	if(!filename) {
+		filename = page.title;
+	}
+	log('Saving page as ' + filename);
+	page.render('Results/' + filename + '.png');
+
+	doNextAction();
+}
+
+/*
+* saveHtml (Public)
+* Saves the html of the page in /Results
+*/
+function saveHtml(filename) {
+	if(!filename) {
+		filename = page.title;
+	}
+	log('Saving html as ' + filename);
+	fs.write('Results/' + filename + '.html', page.content, 'w');
 
 	doNextAction();
 }
@@ -166,15 +226,19 @@ function savePage() {
 */
 function checkStatus(status) {
 	if(status == 'fail') {
-		log("Load failed. Aborting.");
+		log('Load failed. Aborting.');
 		phantom.exit();
 	}
 	log('   Success');
 }
 
+/*
+* injectJquery
+* inject the carnacki jQeury file into the page so it can be used
+*/
 function injectJquery() {
-	if (!page.injectJs("jQuery-1.9.1.js")) {
-		log("Failed to inject jQuery. Make sure that jQuery-1.9.1.js is accessible from this directory.");
+	if (!page.injectJs(JQUERY_FILENAME)) {
+		log('Failed to inject jQuery.');
 		phantom.exit();
 	}
 }
