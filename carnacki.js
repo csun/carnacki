@@ -7,11 +7,10 @@
  * ====================================================================
  */
 
- exports.setLoginInfo = setLoginInfo;
  exports.setLocation = setLocation;
 
- exports.setNextAction = setNextAction;
- exports.addAction = addAction;
+ exports.addNextAction = addNextAction;
+ exports.addLastAction = addLastAction;
  exports.go = go;
 
  exports.login = login;
@@ -30,21 +29,11 @@ var actionWait = 1000;
 var page = require('webpage').create();
 page.onLoadFinished = onLoadFinished;
 
-var userData = {}
 var actionQueue = [];
 
 
 /*
-* === setLoginInfo (Public) ===================================
-* Sets username and password for login
-*/
-function setLoginInfo(username, password) {
-	userData.username = username;
-	userData.password = password;
-}
-
-/*
-* setLocation (Public)
+* === setLocation (Public) ====================================
 * Sets the user's location to a given latitude and longitude
 */
 function setLocation(lat, long) {
@@ -64,20 +53,20 @@ function onLoadFinished(status) {
 
 
 /*
-* === setNextAction (Public) ==================================
-* Set the next action to be executed. Any arguments
+* === addNextAction (Public) ==================================
+* Adds an action to be executed before all others. Any arguments
 * after the first will be passed to the action function at runtime
 */
-function setNextAction(args) {
+function addNextAction(args) {
 	actionQueue.unshift(argumentsToAction(arguments));
 }
 
 /*
-* addAction (Public)
+* addLastAction (Public)
 * Adds an action to be executed after all others. Any arguments
 * after the first will be passed to the action function at runtime
 */
-function addAction(args) {
+function addLastAction(args) {
 	actionQueue.push(argumentsToAction(arguments));
 }
 
@@ -120,9 +109,9 @@ function go() {
 * === login (Public) ==========================================
 * Login to google with pre set username and password
 */
-function login() {
+function login(username, password) {
 	log('Navigating to login path');
-	setNextAction(onLogin);
+	addNextAction(onLogin, username, password);
 	page.open(LOGIN_PATH);
 }
 
@@ -130,15 +119,15 @@ function login() {
 * onLogin
 * Login to google with username and password
 */
-function onLogin() {
-	log('Logging in as ' + userData.username);
+function onLogin(username, password) {
+	log('Logging in as ' + username);
 
 	injectJquery();
 	page.evaluate(function(user, pass) { 
 		$('#gaia_loginform input#Email').val(user);
 		$('#gaia_loginform input#Passwd').val(pass);
 		$('#gaia_loginform input#signIn').click();
-	}, userData.username, userData.password);
+	}, username, password);
 }
 
 /*
