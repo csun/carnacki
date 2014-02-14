@@ -2,6 +2,7 @@
 A Phantom.js library designed to make scripting google searches easier.
 
 ## Quick Start
+Here's a simple script that will get you logged in and searching:
 ```javascript
 carnacki = require('carnacki.js');
 
