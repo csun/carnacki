@@ -52,7 +52,6 @@ function setLocation(lat, long) {
 * Calls the next queued action after a certain amount of wait
 */
 function onLoadFinished(status) {
-	log('Load finished');
 	checkStatus(status);
 	doNextAction();
 }
@@ -94,7 +93,6 @@ function argumentsToAction(args) {
 function doNextAction() {
 	if(actionQueue.length == 0) phantom.exit();
 	
-	log('Starting next action -------------');
 	setTimeout( function() {
 		actionData = actionQueue.shift();
 		actionData.action.apply(undefined, actionData.args);
@@ -229,7 +227,6 @@ function checkStatus(status) {
 		log('Load failed. Aborting.');
 		phantom.exit();
 	}
-	log('   Success');
 }
 
 /*
