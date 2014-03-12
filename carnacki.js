@@ -1,6 +1,7 @@
 /* ====================================================================
  * ====================================================================
  * Authors:	Cameron Sun - cameron.csun@gmail.com
+ *			location code adapted from Arash Molavi Kakhki
  * 
  * Goal: Make it easier to write scripts to search google for you
  * ====================================================================
@@ -37,15 +38,72 @@ page.onLoadFinished = onLoadFinished;
 
 var actionQueue = [];
 
+page.settings.userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 6_1_2 like Mac OS X; en-us) AppleWebKit/536.26 (KHTML, like Gecko) CriOS/23.0.1271.100 Mobile/10B146 Safari/8536.25";
 
 /*
 * === setLocation (Public) ====================================
 * Sets the user's location to a given latitude and longitude
 */
-function setLocation(lat, long) {
-	
+function setLocation(lat, lon) {
+	log('Setting location to ' + lat + ', ' + lon);
+
+	page.onInitialized = function() {
+		log("override-nav");
+		page.evaluate(function(lat, lon) {
+			function Geolocation() {
+				this.getCurrentPosition = function(callback) {
+					callback(new Position);
+				};
+				this.watchPosition = function(callback) {
+					this.getCurrentPosition(callback);
+					return 70;
+				}
+				this.clearWatch = function() {}
+			};
+			function Position() {
+				this.coords = new Coordinates();
+				this.timestamp = Date.now();		
+			};
+			function Coordinates() {
+				this.latitude = lat;
+				this.longitude = lon;
+				this.accuracy = 100;
+			};
+
+			window.navigator.geolocation = new Geolocation();
+		}, lat, lon);
+	}
+
+	addNextAction(clickPreciseLocationButton);
+	addNextAction(searchFor, "pizza");
+
+	doNextAction();
 }
 
+function clickPreciseLocationButton() {
+	// injectJquery();
+	// page.evaluate(function() {
+	// 	// $("a:contains('Use precise location')").click();
+	// 	$("#df_item_1").click();
+	// 	$("#df_item_1").css("font-size", "20px");
+	// });
+
+	var selector = "#df_item_1";
+	var index = 0;
+	
+	page.evaluate(function(selector, index) {
+		function simulateMouseClick(selector, index) {
+			var target = document.querySelectorAll(selector)[index];
+			var myEvent = document.createEvent('MouseEvents');
+			myEvent.initMouseEvent("click", true, true, window, null, 0, 0, 0, 0,
+				false, false, false, false, 0, null);
+			target.dispatchEvent(myEvent);
+		}
+		simulateMouseClick(selector, index);
+	}, selector, index);
+
+	doNextAction();
+}
 
 /*
 * === onLoadFinished ==========================================
@@ -197,7 +255,7 @@ function savePage(filename) {
 	if(!filename) {
 		filename = page.title;
 	}
-	log('Saving page as ' + filename);
+	log('Saving page as ' + filename + '.png');
 	page.render('Results/' + filename + '.png');
 
 	doNextAction();
@@ -211,7 +269,7 @@ function saveHtml(filename) {
 	if(!filename) {
 		filename = page.title;
 	}
-	log('Saving html as ' + filename);
+	log('Saving html as ' + filename + '.html');
 	fs.write('Results/' + filename + '.html', page.content, 'w');
 
 	doNextAction();
