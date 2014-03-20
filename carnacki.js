@@ -26,6 +26,8 @@
 */
 
 var LOGIN_PATH = 'https://accounts.google.com/ServiceLogin?hl=en&continue=https://www.google.com/';
+var LOCATION_BUTTON_PATH = 'http://google.com';
+
 var JQUERY_FILENAME = 'carnacki_jquery.js';
 var JQUERY_DOWNLOAD_URL = 'http://code.jquery.com/jquery-1.11.0.min.js';
 
@@ -38,6 +40,7 @@ page.onLoadFinished = onLoadFinished;
 
 var actionQueue = [];
 
+// NECESSARY FOR GEOLOCATION
 page.settings.userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 6_1_2 like Mac OS X; en-us) AppleWebKit/536.26 (KHTML, like Gecko) CriOS/23.0.1271.100 Mobile/10B146 Safari/8536.25";
 
 /*
@@ -48,59 +51,70 @@ function setLocation(lat, lon) {
 	log('Setting location to ' + lat + ', ' + lon);
 
 	page.onInitialized = function() {
-		log("override-nav");
-		page.evaluate(function(lat, lon) {
-			function Geolocation() {
-				this.getCurrentPosition = function(callback) {
-					callback(new Position);
-				};
-				this.watchPosition = function(callback) {
-					this.getCurrentPosition(callback);
-					return 70;
-				}
-				this.clearWatch = function() {}
-			};
+		overrideGeolocation(lat, lon);
+	}
+
+	addNextAction(updateGoogleLocation);
+	doNextAction();
+}
+
+/*
+* overrideGeolocation
+* Overrides the window's current geolocation functions with
+* ones that return spoofed values
+*/
+function overrideGeolocation(lat, lon) {
+	page.evaluate(function(lat, lon) {
+		function Geolocation() {
+			this.getCurrentPosition = function(callback) {
+				callback(new Position);
+			}
+
+			this.watchPosition = function(callback) {
+				this.getCurrentPosition(callback);
+				return 0;
+			}
+
+			this.clearWatch = function() {}
+
 			function Position() {
 				this.coords = new Coordinates();
 				this.timestamp = Date.now();		
-			};
+			}
+
 			function Coordinates() {
 				this.latitude = lat;
 				this.longitude = lon;
 				this.accuracy = 100;
-			};
+			}
+		}
 
-			window.navigator.geolocation = new Geolocation();
-		}, lat, lon);
-	}
-
-	addNextAction(clickPreciseLocationButton);
-	addNextAction(searchFor, "pizza");
-
-	doNextAction();
+		window.navigator.geolocation = new Geolocation();
+	}, lat, lon);
 }
 
-function clickPreciseLocationButton() {
-	// injectJquery();
-	// page.evaluate(function() {
-	// 	// $("a:contains('Use precise location')").click();
-	// 	$("#df_item_1").click();
-	// 	$("#df_item_1").css("font-size", "20px");
-	// });
 
-	var selector = "#df_item_1";
-	var index = 0;
-	
-	page.evaluate(function(selector, index) {
-		function simulateMouseClick(selector, index) {
-			var target = document.querySelectorAll(selector)[index];
-			var myEvent = document.createEvent('MouseEvents');
-			myEvent.initMouseEvent("click", true, true, window, null, 0, 0, 0, 0,
-				false, false, false, false, 0, null);
-			target.dispatchEvent(myEvent);
-		}
-		simulateMouseClick(selector, index);
-	}, selector, index);
+/*
+* updateGoogleLocation
+* Force google to update current location
+*/
+function updateGoogleLocation() {
+	addNextAction(clickPreciseLocationButton);
+	navigateTo(LOCATION_BUTTON_PATH);
+}
+
+/*
+* clickPreciseLocationButton
+* Click the button that makes google update location
+*/
+function clickPreciseLocationButton() {
+	page.evaluate(function() {
+		var locationLink = document.querySelector("div#swml > a");
+		var mouseEvent = document.createEvent('MouseEvents');
+
+		mouseEvent.initMouseEvent("click", true, true, window);
+		locationLink.dispatchEvent(mouseEvent);
+	});
 
 	doNextAction();
 }
