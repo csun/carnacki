@@ -31,6 +31,8 @@ var LOCATION_BUTTON_PATH = 'http://google.com';
 var JQUERY_FILENAME = 'carnacki_jquery.js';
 var JQUERY_DOWNLOAD_URL = 'http://code.jquery.com/jquery-1.11.0.min.js';
 
+var SAVE_DIRECTORY = 'Results/';
+
 var debuggingEnabled = true;
 var actionWait = 1000;
 
@@ -270,7 +272,7 @@ function savePage(filename) {
 		filename = page.title;
 	}
 	log('Saving page as ' + filename + '.png');
-	page.render('Results/' + filename + '.png');
+	page.render(SAVE_DIRECTORY + filename + '.png');
 
 	doNextAction();
 }
@@ -284,7 +286,7 @@ function saveHtml(filename) {
 		filename = page.title;
 	}
 	log('Saving html as ' + filename + '.html');
-	fs.write('Results/' + filename + '.html', page.content, 'w');
+	fs.write(SAVE_DIRECTORY + filename + '.html', page.content, 'w');
 
 	doNextAction();
 }
